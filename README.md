@@ -59,10 +59,10 @@ heart-disease-app/
    You'll see a test accuracy printed (with your ~918-row dataset, expect roughly 85-90%, not the 100% you'd see on a tiny sample). This confirms `models/heart_model.pkl` and `models/scaler.pkl` were created.
 
 4. **Run the app**
-   ```
-   python3 app.py
-   ```
-   Open **http://127.0.0.1:8000** in your browser.
+   ## 🔗 Live Demo
+https://codealpha-diseaseprediction-zcrg.onrender.com
+
+> Note: hosted on Render's free tier — the first load after inactivity may take 30-60 seconds to wake up.
 
 ## Notes
 - On macOS, use `python3` and `pip3` (not `python`/`pip`) unless you've specifically aliased them.

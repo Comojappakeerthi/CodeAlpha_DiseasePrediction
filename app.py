@@ -1,50 +1,99 @@
-import joblib
-import numpy as np
+from flask import Flask, render_template, request
 import pandas as pd
+import joblib
+import os
 
-# Load model and scaler
-model = joblib.load("models/heart_model.pkl")
-scaler = joblib.load("models/scaler.pkl")
+from encoding import FEATURE_COLUMNS, encode_dataframe
 
-print("\n===== Heart Disease Prediction System =====\n")
+app = Flask(__name__)
 
-features = []
+MODEL_PATH = os.path.join("models", "heart_model.pkl")
+SCALER_PATH = os.path.join("models", "scaler.pkl")
 
-questions = [
-    "Age: ",
-    "Sex (1 = Male, 0 = Female): ",
-    "Chest Pain Type (0-3): ",
-    "Resting Blood Pressure: ",
-    "Cholesterol: ",
-    "Fasting Blood Sugar > 120 mg/dl (1 = True, 0 = False): ",
-    "Rest ECG (0-2): ",
-    "Maximum Heart Rate Achieved: ",
-    "Exercise Induced Angina (1 = Yes, 0 = No): ",
-    "Oldpeak: ",
-    "Slope (0-2): ",
-    "Number of Major Vessels (0-3): ",
-    "Thal (0 = Normal, 1 = Fixed Defect, 2 = Reversible Defect): "
-]
+model = None
+scaler = None
 
-for q in questions:
-    value = float(input(q))
-    features.append(value)
+# Load trained model and scaler if they exist.
+# (Run train_model.py first to create them from your Kaggle dataset.)
+if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+    model = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
 
-columns = [
-    'age', 'sex', 'cp', 'trestbps', 'chol',
-    'fbs', 'restecg', 'thalach', 'exang',
-    'oldpeak', 'slope', 'ca', 'thal'
-]
 
-data = pd.DataFrame([features], columns=columns)
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-# Scale data
-scaled_data = scaler.transform(data)
 
-# Predict
-prediction = model.predict(scaled_data)
+@app.route("/predict", methods=["POST"])
+def predict():
+    if model is None or scaler is None:
+        return render_template(
+            "index.html",
+            prediction="Error",
+            message="Model not found. Run train_model.py first to generate models/heart_model.pkl and models/scaler.pkl.",
+            icon="❌",
+            status="danger",
+        )
 
-if prediction[0] == 1:
-    print("\n⚠️ Prediction: Heart Disease Detected")
-else:
-    print("\n✅ Prediction: No Heart Disease Detected")
+    try:
+        raw = {
+            "Age": float(request.form["age"]),
+            "Sex": request.form["sex"],                     # M / F
+            "ChestPainType": request.form["chestpaintype"],  # TA / ATA / NAP / ASY
+            "RestingBP": float(request.form["restingbp"]),
+            "Cholesterol": float(request.form["cholesterol"]),
+            "FastingBS": float(request.form["fastingbs"]),   # 0 / 1
+            "RestingECG": request.form["restingecg"],        # Normal / ST / LVH
+            "MaxHR": float(request.form["maxhr"]),
+            "ExerciseAngina": request.form["exerciseangina"],  # Y / N
+            "Oldpeak": float(request.form["oldpeak"]),
+            "ST_Slope": request.form["stslope"],              # Up / Flat / Down
+        }
+
+        patient_raw = pd.DataFrame([raw])
+        patient_encoded = encode_dataframe(patient_raw)[FEATURE_COLUMNS]
+
+        scaled = scaler.transform(patient_encoded)
+        prediction = model.predict(scaled)[0]
+
+        summary = {
+            "Age": int(raw["Age"]),
+            "Sex": "Male" if raw["Sex"] == "M" else "Female",
+            "Chest Pain Type": raw["ChestPainType"],
+            "Resting Blood Pressure": int(raw["RestingBP"]),
+            "Cholesterol": int(raw["Cholesterol"]),
+            "Max Heart Rate": int(raw["MaxHR"]),
+        }
+
+        if prediction == 1:
+            return render_template(
+                "index.html",
+                prediction="HIGH RISK OF HEART DISEASE",
+                message="Please consult a healthcare professional.",
+                icon="⚠️",
+                status="danger",
+                summary=summary,
+            )
+        else:
+            return render_template(
+                "index.html",
+                prediction="LOW RISK OF HEART DISEASE",
+                message="Maintain a healthy lifestyle and regular checkups.",
+                icon="💚",
+                status="success",
+                summary=summary,
+            )
+
+    except Exception as e:
+        return render_template(
+            "index.html",
+            prediction="Error",
+            message=str(e),
+            icon="❌",
+            status="danger",
+        )
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

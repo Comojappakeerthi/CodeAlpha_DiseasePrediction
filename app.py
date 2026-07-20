@@ -13,8 +13,6 @@ SCALER_PATH = os.path.join("models", "scaler.pkl")
 model = None
 scaler = None
 
-# Load trained model and scaler if they exist.
-# (Run train_model.py first to create them from your Kaggle dataset.)
 if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
@@ -31,7 +29,7 @@ def predict():
         return render_template(
             "index.html",
             prediction="Error",
-            message="Model not found. Run train_model.py first to generate models/heart_model.pkl and models/scaler.pkl.",
+            message="Model not found. Run train_model.py first.",
             icon="❌",
             status="danger",
         )
@@ -39,16 +37,16 @@ def predict():
     try:
         raw = {
             "Age": float(request.form["age"]),
-            "Sex": request.form["sex"],                     # M / F
-            "ChestPainType": request.form["chestpaintype"],  # TA / ATA / NAP / ASY
+            "Sex": request.form["sex"],
+            "ChestPainType": request.form["chestpaintype"],
             "RestingBP": float(request.form["restingbp"]),
             "Cholesterol": float(request.form["cholesterol"]),
-            "FastingBS": float(request.form["fastingbs"]),   # 0 / 1
-            "RestingECG": request.form["restingecg"],        # Normal / ST / LVH
+            "FastingBS": float(request.form["fastingbs"]),
+            "RestingECG": request.form["restingecg"],
             "MaxHR": float(request.form["maxhr"]),
-            "ExerciseAngina": request.form["exerciseangina"],  # Y / N
+            "ExerciseAngina": request.form["exerciseangina"],
             "Oldpeak": float(request.form["oldpeak"]),
-            "ST_Slope": request.form["stslope"],              # Up / Flat / Down
+            "ST_Slope": request.form["stslope"],
         }
 
         patient_raw = pd.DataFrame([raw])
@@ -94,6 +92,5 @@ def predict():
             status="danger",
         )
 
-
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=True, port=8000)

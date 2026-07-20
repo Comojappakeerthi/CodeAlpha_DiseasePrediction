@@ -1,5 +1,4 @@
-models/*.pkl
-   dataset/
-   data/
-   __pycache__/
-   
+__pycache__/
+*.pyc
+README.md.save
+.DS_Store
